@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shireesha Govindu – Resume</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:     #1a1a1a;
+    --mid:     #444;
+    --muted:   #777;
+    --rule:    #d0cdc8;
+    --accent:  #b85c00;
+    --bg:      #faf9f7;
+    --tag-bg:  #f0ede8;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 10.5pt;
+    line-height: 1.55;
+  }
+
+  .page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 52px 58px 60px;
+    background: #fff;
+    box-shadow: 0 2px 24px rgba(0,0,0,.08);
+  }
+
+  /* ── HEADER ─────────────────────────────── */
+  header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 24px;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+  }
+
+  h1 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+    font-size: 30pt;
+    letter-spacing: -.2px;
+    line-height: 1;
+    color: var(--ink);
+  }
+
+  .title-line {
+    font-size: 9pt;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-top: 6px;
+  }
+
+  .contact {
+    text-align: right;
+    font-size: 9pt;
+    color: var(--mid);
+    line-height: 1.8;
+    font-family: 'DM Mono', monospace;
+    font-weight: 400;
+  }
+
+  .contact a { color: var(--mid); text-decoration: none; }
+  .contact a:hover { color: var(--accent); }
+
+  /* ── SECTION ────────────────────────────── */
+  section { margin-bottom: 22px; }
+
+  .section-label {
+    font-size: 7.5pt;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+  }
+
+  /* ── SUMMARY ────────────────────────────── */
+  .summary p {
+    color: var(--mid);
+    font-size: 10pt;
+    font-weight: 300;
+    max-width: 680px;
+    line-height: 1.65;
+  }
+
+  /* ── SKILLS ─────────────────────────────── */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 24px;
+  }
+
+  .skill-group-label {
+    font-size: 8pt;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .tag {
+    background: var(--tag-bg);
+    color: var(--mid);
+    font-size: 8.5pt;
+    font-family: 'DM Mono', monospace;
+    padding: 2px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .tag.highlight {
+    background: #f9ede0;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ── EXPERIENCE ─────────────────────────── */
+  .job { margin-bottom: 18px; }
+
+  .job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 2px;
+  }
+
+  .job-co {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+    font-size: 13pt;
+    color: var(--ink);
+  }
+
+  .job-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 8.5pt;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .job-role {
+    font-weight: 600;
+    font-size: 9.5pt;
+    color: var(--mid);
+    margin-bottom: 10px;
+    letter-spacing: .02em;
+  }
+
+  .sub-label {
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 10px;
+    margin-bottom: 5px;
+  }
+
+  ul { list-style: none; padding: 0; }
+  ul li {
+    padding-left: 14px;
+    position: relative;
+    margin-bottom: 5px;
+    color: var(--mid);
+    font-size: 10pt;
+    font-weight: 300;
+  }
+  ul li::before {
+    content: '–';
+    position: absolute;
+    left: 0;
+    color: var(--rule);
+    font-weight: 400;
+  }
+
+  strong { font-weight: 600; color: var(--ink); }
+
+  /* ── PROJECTS ───────────────────────────── */
+  .project {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0 14px;
+    margin-bottom: 10px;
+    align-items: start;
+  }
+
+  .proj-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 9pt;
+    font-weight: 500;
+    color: var(--accent);
+    white-space: nowrap;
+    padding-top: 1px;
+  }
+
+  .proj-desc {
+    font-size: 10pt;
+    font-weight: 300;
+    color: var(--mid);
+  }
+
+  /* ── EDUCATION ──────────────────────────── */
+  .edu-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .edu-deg { font-weight: 500; font-size: 10pt; }
+  .edu-uni { font-size: 9.5pt; font-weight: 300; color: var(--muted); }
+
+  /* ── AWARD STRIP ────────────────────────── */
+  .award-strip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f9ede0;
+    border-left: 3px solid var(--accent);
+    padding: 5px 12px;
+    border-radius: 0 4px 4px 0;
+    margin-top: 8px;
+    font-size: 9pt;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ── PRINT ──────────────────────────────── */
+  @media print {
+    body { background: #fff; font-size: 10pt; }
+    .page { box-shadow: none; padding: 36px 44px; max-width: 100%; }
+    .back-link { display: none !important; }
+  }
+
+  .back-link {
+    display: block;
+    max-width: 820px;
+    margin: 0 auto 18px;
+    padding: 32px 58px 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 9pt;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: .02em;
+  }
+  .back-link:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<a class="back-link" href="index.html">← back to portfolio</a>
+<div class="page">
+
+  <!-- HEADER -->
+  <header>
+    <div>
+      <h1>Shireesha Govindu</h1>
+      <div class="title-line">LLM Inference Performance Engineer &nbsp;·&nbsp; GPU Systems (vLLM / ROCm / MI300X)</div>
+    </div>
+    <div class="contact">
+      shireesha.govindu@gmail.com<br>
+      +91 9490048831<br>
+      <a href="https://www.linkedin.com/in/shireesha-govindu-510018161" target="_blank" rel="noopener">linkedin.com/in/shireesha-govindu</a><br>
+      <a href="https://github.com/ShireeshaGovindu" target="_blank" rel="noopener">github.com/ShireeshaGovindu</a>
+    </div>
+  </header>
+
+  <!-- SUMMARY -->
+  <section class="summary">
+    <div class="section-label">Profile</div>
+    <p>
+      GPU software engineer with <strong>3 years at AMD</strong> building GPU tooling and automation infrastructure across Radeon product lines. Now focused on <strong>LLM inference performance on AMD data-center GPUs</strong> — completed two structured <strong>MI300X</strong> benchmarking studies (dense and MoE/latent-attention architectures) using vLLM and ROCm, applying roofline-model bottleneck analysis, FP8 quantization, and kernel-level AITER decomposition.
+    </p>
+  </section>
+
+  <!-- SKILLS -->
+  <section>
+    <div class="section-label">Technical Skills</div>
+    <div class="skills-grid">
+
+      <div>
+        <div class="skill-group-label">AI / Inference</div>
+        <div class="tags">
+          <span class="tag highlight">vLLM</span>
+          <span class="tag highlight">Triton Inference Server</span>
+          <span class="tag highlight">ONNX Runtime</span>
+          <span class="tag highlight">Hugging Face TGI</span>
+          <span class="tag highlight">SGLang</span>
+          <span class="tag highlight">PagedAttention</span>
+          <span class="tag highlight">KV Cache Management</span>
+          <span class="tag highlight">Continuous Batching</span>
+          <span class="tag highlight">FP8 Quantization</span>
+          <span class="tag highlight">MoE Inference</span>
+          <span class="tag highlight">MLA</span>
+          <span class="tag highlight">TTFT / ITL / Throughput</span>
+          <span class="tag highlight">PyTorch</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="skill-group-label">GPU Perf &amp; Profiling</div>
+        <div class="tags">
+          <span class="tag highlight">ROCm</span>
+          <span class="tag highlight">AITER</span>
+          <span class="tag highlight">rocprofv3</span>
+          <span class="tag highlight">Omniperf</span>
+          <span class="tag highlight">MI300X (CDNA3 / gfx942)</span>
+          <span class="tag">rocm-smi</span>
+          <span class="tag">Roofline / Arithmetic Intensity</span>
+          <span class="tag">HBM Bandwidth Analysis</span>
+          <span class="tag">PMC Hardware Counters</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="skill-group-label">GPU &amp; Graphics</div>
+        <div class="tags">
+          <span class="tag">GPU Validation</span>
+          <span class="tag">Ray Tracing</span>
+          <span class="tag">TLAS / BLAS</span>
+          <span class="tag">RGP</span>
+          <span class="tag">RMV</span>
+          <span class="tag">AMF</span>
+          <span class="tag">Media SDK</span>
+          <span class="tag">MLVEC</span>
+          <span class="tag">RRA</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="skill-group-label">Engineering</div>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">Automation Frameworks</span>
+          <span class="tag">Docker</span>
+          <span class="tag">Jenkins</span>
+          <span class="tag">Gerrit</span>
+          <span class="tag">Git</span>
+          <span class="tag">Linux</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- EXPERIENCE -->
+  <section>
+    <div class="section-label">Experience</div>
+
+    <div class="job">
+      <div class="job-header">
+        <span class="job-co">AMD</span>
+        <span class="job-date">Aug 2021 – Jun 2024</span>
+      </div>
+      <div class="job-role">Software Systems Designer II &nbsp;·&nbsp; CQE Organization — Radeon Tools &amp; GPU Software Quality</div>
+
+      <div class="sub-label">Automation &amp; Infrastructure</div>
+      <ul>
+        <li>Designed and owned a <strong>Python-based Plug-and-Play automation framework</strong> covering driver download, installation, validation, tool execution, result collection, log analysis, XML processing, and report generation — used across multiple AMD GPU product lines.</li>
+        <li>Built and maintained the automation infrastructure underpinning <strong>graphics driver qualification and validation</strong> across Vega, Navi (discrete) and Barcelo, Rembrandt (integrated) GPU platforms.</li>
+      </ul>
+
+      <div class="sub-label">GPU Tooling &amp; Validation</div>
+      <ul>
+        <li>Contributed to <strong>Radeon Raytracing Analyzer (RRA)</strong> validation: designed test cases, reproduced defects, validated new ray tracing capabilities, and analyzed acceleration structures (<strong>TLAS / BLAS</strong>).</li>
+        <li>Analyzed <strong>RGP (Radeon GPU Profiler) and RMV (Radeon Memory Visualizer) traces</strong> of ray-tracing games to investigate GPU performance and memory behavior.</li>
+        <li>Supported validation and automation for <strong>AMD Media Framework (AMF), Media SDK, MLVEC</strong>, and PCMark10 workloads covering video encode/decode, media acceleration, and graphics performance scenarios.</li>
+        <li>Collaborated with cross-functional engineering teams to improve tool quality, validation coverage, and automation efficiency.</li>
+      </ul>
+
+      <div class="sub-label">Leadership &amp; Knowledge Sharing</div>
+      <ul>
+        <li>Mentored <strong>2 engineering interns</strong> on Python development, automation design, debugging practices, and GPU tooling workflows.</li>
+        <li>Delivered <strong>15+ Python technical sessions</strong> to ~40 engineers across the organization.</li>
+      </ul>
+
+      <div class="award-strip">
+        ★ &nbsp; AMD Spotlight Award — recognized for technical contributions and engineering impact
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section>
+    <div class="section-label">vLLM Inference Runtime on AMD ROCm MI300X <span style="font-weight:300;font-size:8pt;letter-spacing:0;text-transform:none;color:var(--muted)">(AMD Developer Cloud · vLLM · ROCm)</span></div>
+
+    <div style="margin-bottom:10px;">
+      <span style="font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;font-size:12pt;color:var(--ink);">Study 1 — Dense Architecture (Llama-3.1-8B-Instruct, BF16/FP8)</span>
+    </div>
+    <ul style="margin-bottom:14px;">
+      <li>Ran a full benchmarking pipeline on a single MI300X — baseline, concurrency sweep, KV-cache breaking point, FP8, AITER, composition, and roofline profiling — scaling throughput <strong>192.6 → 5,595 tok/s (29×)</strong> via concurrency alone, with FP8 adding a further <strong>1.55×</strong> at peak load for <strong>+0.34% perplexity</strong> cost.</li>
+      <li>Used roofline / arithmetic-intensity analysis to predict, ahead of measurement, that AITER would give <strong>~0% benefit</strong> on this dense architecture (compute &lt;1% utilized at low concurrency; AITER's kernels target MoE/MLA models, not standard attention) — confirmed empirically (<strong>-0.1%</strong> measured).</li>
+      <li>Identified a <strong>KV-cache exhaustion cliff at concurrency 256</strong> (ISL=2048) where p99 TTFT jumps &gt;50% in a single step from vLLM preemption/recompute — established as the hard SLO boundary independent of raw throughput headroom.</li>
+      <li>Ran a composition test stacking FP8 + AITER: <strong>+32.5%</strong> vs. BF16, sub-additive against the +54.8% naive sum of individual gains — showing both optimizations relieve the same HBM-bandwidth bottleneck.</li>
+      <li>Captured a long-prompt (ISL=7,680) roofline point at arithmetic intensity &gt;7,680 FLOP/byte, confirming prefill is <strong>compute-bound</strong> — the architectural inverse of memory-bound decode, motivating disaggregated prefill/decode serving.</li>
+    </ul>
+
+    <div style="margin-bottom:10px;">
+      <span style="font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;font-size:12pt;color:var(--ink);">Study 2 — MoE / Latent-Attention Architecture (DeepSeek-V2-Lite)</span>
+    </div>
+    <ul style="margin-bottom:12px;">
+      <li>Repeated the methodology on DeepSeek-V2-Lite (MoE + MLA, <strong>15.7B total / 2.4B active</strong> per step); designed a 4-arm leave-one-out AITER ablation (full / no-MoE / no-MLA / off) to isolate kernel-level contributions, verified against rocprofv3 kernel traces.</li>
+      <li>Found AITER to be the single largest performance lever on this architecture (<strong>+38.7% over BF16, 9,697 tok/s peak</strong>) — decomposed into <strong>+31.6%</strong> from MLA-attention kernels vs. <strong>+16.6%</strong> from MoE routing, the architecture-dependent inverse of the dense-model result — cross-checked with rocprof-compute roofline profiling and PMC hardware counters.</li>
+    </ul>
+
+    <div class="project">
+      <div class="proj-name">Runtime Survey</div>
+      <div class="proj-desc">Studied the scheduling and memory-management design of alternative inference runtimes (Triton Inference Server, ONNX Runtime, Hugging Face TGI, SGLang) alongside vLLM to build a comparative understanding of continuous batching, execution-provider/kernel selection, and structured-decoding trade-offs across serving stacks.</div>
+    </div>
+
+  </section>
+
+  <!-- EDUCATION -->
+  <section>
+    <div class="section-label">Education</div>
+    <div class="edu-row">
+      <span class="edu-deg">M.Tech, Computer Science &amp; Engineering</span>
+      <span class="edu-uni">Osmania University, Hyderabad</span>
+    </div>
+    <div class="edu-row">
+      <span class="edu-deg">B.Tech, Computer Science &amp; Engineering</span>
+      <span class="edu-uni">JNTU Hyderabad</span>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

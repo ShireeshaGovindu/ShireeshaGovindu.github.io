@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>From Prompt to Token: Inside Transformer Inference on AMD GPUs — Shireesha Govindu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1c1b18;
+    --muted: #75726b;
+    --faint: #a8a59a;
+    --line: #ece7da;
+    --line-soft: #f3efe5;
+    --link: #117267;
+    --underline: #bcd6d1;
+    --code-bg: #f6f3ea;
+    --mark: #fbf3d8;
+    --serif: "EB Garamond", Georgia, "Times New Roman", serif;
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  html[data-theme="dark"] {
+    --bg: #14130f;
+    --fg: #e9e6df;
+    --muted: #908d84;
+    --faint: #5f5d56;
+    --line: #2a2823;
+    --line-soft: #201e1a;
+    --link: #5cc4b7;
+    --underline: #2e605a;
+    --code-bg: #1b1a16;
+    --mark: #34301f;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--serif);
+    font-size: 21px;
+    line-height: 1.58;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    transition: background .35s ease, color .35s ease;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 28px; }
+
+  #progress {
+    position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+    background: var(--link); z-index: 50;
+    transition: width .08s linear;
+  }
+
+  .topbar {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 40px 0 0;
+  }
+  .topbar .home { font-family: var(--mono); font-size: 13px; letter-spacing: .02em; color: var(--muted); text-decoration: none; background: none; }
+  .topbar .home:hover { color: var(--fg); }
+  .theme-toggle {
+    font-family: var(--mono); font-size: 15px; line-height: 1;
+    background: none; border: 1px solid var(--line); color: var(--muted);
+    padding: 5px 10px; border-radius: 999px; cursor: pointer;
+    transition: border-color .2s, color .2s;
+  }
+  .theme-toggle:hover { border-color: var(--muted); color: var(--fg); }
+
+  article header { padding: 58px 0 6px; }
+  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 0 0 20px; }
+  article h1 { font-size: 38px; font-weight: 600; line-height: 1.16; letter-spacing: -0.015em; margin: 0 0 18px; text-wrap: balance; }
+  .dek { font-size: 22px; color: var(--muted); font-style: italic; line-height: 1.45; margin: 0 0 26px; }
+  .byline { font-family: var(--mono); font-size: 12.5px; color: var(--faint); letter-spacing: .02em; display: flex; flex-wrap: wrap; gap: 8px 16px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .byline .sep { color: var(--line); }
+
+  article { padding-bottom: 20px; }
+  .body { padding-top: 8px; }
+  .body p { margin: 22px 0; }
+  .body h2 { font-size: 27px; font-weight: 600; letter-spacing: -0.01em; margin: 52px 0 6px; }
+  .body h2 .num { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--link); margin-right: 12px; letter-spacing: 0; vertical-align: 2px; }
+  .body h3 { font-size: 21px; font-weight: 600; margin: 36px 0 4px; }
+  a { color: var(--link); text-decoration: none; background-image: linear-gradient(var(--underline), var(--underline)); background-position: 0 100%; background-repeat: no-repeat; background-size: 100% 1px; padding-bottom: 1px; transition: background-size .2s; }
+  a:hover { background-size: 100% 2px; }
+  .body em { font-style: italic; }
+  .body strong { font-weight: 600; }
+  mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 2px; }
+
+  code { font-family: var(--mono); font-size: 0.82em; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; overflow-x: auto; margin: 28px 0; line-height: 1.6; }
+  pre code { font-size: 13.5px; background: none; padding: 0; color: var(--fg); }
+  .com { color: var(--faint); }
+
+  /* Flow diagram */
+  .flow {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 24px 28px; margin: 28px 0; display: flex; gap: 48px; flex-wrap: wrap;
+  }
+  .flow-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .flow-col .title {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--faint); margin-bottom: 14px;
+  }
+  .flow-node {
+    font-family: var(--mono); font-size: 12.5px; color: var(--fg);
+    padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); white-space: nowrap;
+  }
+  .flow-node.highlight { border-color: var(--link); color: var(--link); }
+  .flow-arrow {
+    font-family: var(--mono); font-size: 13px; color: var(--faint);
+    line-height: 1; padding: 3px 0;
+  }
+
+  /* Target callout */
+  .target { border: 1px solid var(--line); border-left: 3px solid var(--link); border-radius: 8px; padding: 20px 22px; margin: 30px 0; background: var(--line-soft); }
+  .target .lab { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--link); margin: 0 0 8px; }
+  .target p { margin: 0; font-size: 19px; line-height: 1.5; }
+
+  /* Kernel tag list */
+  .kernel-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+  .kernel-list code { font-size: 12.5px; padding: 4px 10px; border-radius: 4px; }
+
+  /* Bound badge */
+  .bound {
+    display: inline-block; font-family: var(--mono); font-size: 11px;
+    letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px;
+    border-radius: 999px; margin-left: 8px; vertical-align: middle;
+  }
+  .bound.mem { background: #fef3c7; color: #92400e; }
+  html[data-theme="dark"] .bound.mem { background: #3d2e0a; color: #f59e0b; }
+  .bound.compute { background: #d1fae5; color: #065f46; }
+  html[data-theme="dark"] .bound.compute { background: #0a2e1e; color: #34d399; }
+  .bound.light { background: var(--line-soft); color: var(--muted); }
+
+  figure { margin: 34px 0; }
+  .fig-slot {
+    width: 100%; height: 200px; border: 1px solid var(--line); border-radius: 8px;
+    background-color: var(--code-bg);
+    background-image: repeating-linear-gradient(135deg, transparent 0 13px, rgba(120,114,100,.08) 13px 14px);
+    display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px;
+  }
+  .fig-slot span { font-family: var(--mono); font-size: 12px; line-height: 1.6; color: var(--muted); max-width: 80%; }
+  .fig-slot span b { color: var(--fg); font-weight: 600; display: block; margin-bottom: 5px; letter-spacing: .02em; }
+  figcaption { font-family: var(--mono); font-size: 12.5px; color: var(--faint); line-height: 1.6; margin-top: 11px; padding-left: 2px; }
+  figcaption .n { color: var(--link); }
+
+  /* Table */
+  .tbl-wrap { margin: 30px 0; overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 16px; }
+  caption { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); text-align: left; margin-bottom: 12px; }
+  th, td { text-align: left; padding: 10px 14px 10px 0; border-bottom: 1px solid var(--line); }
+  thead th { font-family: var(--mono); font-size: 11.5px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--fg); }
+  td code { font-size: 12.5px; }
+  td.bound-col { font-family: var(--mono); font-size: 12px; }
+
+  hr.rule { border: none; border-top: 1px solid var(--line); margin: 48px 0; }
+
+  .post-nav { display: flex; justify-content: space-between; gap: 20px; padding: 30px 0; margin-top: 30px; border-top: 1px solid var(--line); }
+  .post-nav a { font-family: var(--mono); font-size: 13px; color: var(--muted); background: none; padding: 0; }
+  .post-nav a:hover { color: var(--fg); }
+  footer.site { padding: 30px 0 70px; border-top: 1px solid var(--line); }
+  footer.site .links { display: flex; flex-wrap: wrap; gap: 22px; font-family: var(--mono); font-size: 13px; }
+  footer.site .copy { margin-top: 22px; font-family: var(--mono); font-size: 12px; color: var(--faint); }
+
+  @media (max-width: 600px) {
+    body { font-size: 19px; }
+    article h1 { font-size: 31px; }
+    .dek { font-size: 20px; }
+    .flow { gap: 28px; }
+  }
+</style>
+</head>
+<body>
+  <div id="progress"></div>
+  <div class="wrap">
+    <div class="topbar">
+      <a class="home" href="../index.html">← shireesha govindu</a>
+      <button class="theme-toggle" id="themeBtn" aria-label="Toggle theme">☾</button>
+    </div>
+
+    <article data-screen-label="Post — Transformer Inference Kernels">
+      <header>
+        <p class="kicker">Inference internals · 02</p>
+        <h1>From Prompt to Token: Inside Transformer Inference on AMD GPUs</h1>
+        <p class="dek">A practical walkthrough of prefill, decode, attention, KV cache, GPU kernels, and memory bottlenecks in modern LLM inference.</p>
+        <p class="byline">
+          <span>Shireesha Govindu</span><span class="sep">/</span>
+          <span>June 2026</span><span class="sep">/</span>
+          <span>15 min</span><span class="sep">/</span>
+          <span>worklog</span>
+        </p>
+      </header>
+
+      <div class="body">
+        <p>Every time an LLM produces a token, the GPU runs through the same sequence of operations — dozens of kernels firing in order, each consuming and producing tensors, each constrained by a different hardware resource. Knowing which kernel does what, and where it spends its time, is the foundation of any real performance work on AMD ROCm.</p>
+
+        <p>This post maps the full path: one transformer layer, every kernel, and what actually shows up when you reach for <code>rocprof</code> or Omniperf.</p>
+
+        <div class="target">
+          <p class="lab">Goal</p>
+          <p>Build a mental model precise enough that when a kernel name appears in a profiler trace, you know what operation it corresponds to, what hardware resource it stresses, and whether it should be compute-bound or memory-bound.</p>
+        </div>
+
+        <h2><span class="num">00</span>The layer pipeline</h2>
+        <p>A single transformer layer is a fixed sequence. Every token passes through every stage on every forward pass — prefill and decode alike. The structure never changes; only the shapes of the tensors do.</p>
+
+        <div class="flow">
+          <div class="flow-col">
+            <div class="title">Transformer Layer</div>
+            <div class="flow-node">Input</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node">RMSNorm</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node">QKV Projection</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node highlight">Attention</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node">Output Projection</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node">MLP</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-node">Output</div>
+          </div>
+        </div>
+
+        <p>Each stage launches one or more GPU kernels. The rest of this post walks them in order.</p>
+
+        <h2><span class="num">01</span>RMSNorm <span class="bound mem">memory-bound</span></h2>
+        <p>Before the attention block, activations are normalized. Most modern LLMs use RMSNorm rather than LayerNorm — it drops the mean-centering step and is slightly cheaper, but the memory access pattern is the same.</p>
+
+        <pre><code><span class="com"># Operation: normalize each activation vector</span>
+x_norm = x / sqrt(mean(x²) + ε) * γ
+
+<span class="com"># Work per call</span>
+<span class="com">#  1. Read activations from HBM</span>
+<span class="com">#  2. Reduce across hidden dimension (variance)</span>
+<span class="com">#  3. Normalize and scale</span>
+<span class="com">#  4. Write result back to HBM</span></code></pre>
+
+        <p>Typical kernels you'll see: <code>rmsnorm</code>, <code>fused_rmsnorm</code>. The compute is trivial — a handful of FLOPs per element — so the kernel is almost always <strong>memory-bound</strong>. Its roofline sits far left on the arithmetic intensity axis.</p>
+
+        <h2><span class="num">02</span>QKV Projection GEMM <span class="bound compute">compute-bound</span></h2>
+        <p>This is where most of the model's floating-point work actually happens. The normalized input is multiplied by a weight matrix to produce queries, keys, and values simultaneously.</p>
+
+        <pre><code><span class="com"># Shape: [batch × seq, hidden] × [hidden, 3 × hidden]</span>
+QKV = Input @ W_qkv
+
+<span class="com"># Llama-3-8B example</span>
+[batch, 4096] × [4096, 12288]  → [batch, 12288]
+<span class="com">#                                  ^ Q | K | V concatenated</span></code></pre>
+
+        <p>Typical kernels: <code>rocblas_gemm</code>, <code>ck_gemm</code>, <code>aiter_gemm</code>. These are the kernels that light up <mark>Matrix Cores (MFMA)</mark> — AMD's fused-multiply-accumulate units that give MI300X its peak TFLOPS rating. They consume a heavy share of register file and LDS. During prefill, this is often the <em>single most expensive kernel</em> in the layer.</p>
+
+        <h2><span class="num">03</span>Q/K/V Split <span class="bound mem">memory-bound</span></h2>
+        <p>The fused QKV matrix gets sliced into three separate tensors. This is pure memory movement — no arithmetic, just reshaping and permuting to get the right layout for the attention kernel.</p>
+
+        <div class="kernel-list">
+          <code>split_qkv</code>
+          <code>reshape_qkv</code>
+          <code>permute_qkv</code>
+        </div>
+
+        <p>It's lightweight and fast. In profiles it often shows up as a small spike between the big GEMM and the RoPE kernel. Some frameworks fuse it away entirely.</p>
+
+        <h2><span class="num">04</span>RoPE <span class="bound light">lightweight</span></h2>
+        <p>Rotary Positional Embedding encodes each token's sequence position directly into the Q and K vectors by rotating them in complex space. The result: attention scores naturally decay with distance, without any additive positional table in the weights.</p>
+
+        <pre><code><span class="com"># For each pair of dimensions (d, d+1) in Q and K:</span>
+q[d]   = q[d]   * cos(θ) − q[d+1] * sin(θ)
+q[d+1] = q[d]   * sin(θ) + q[d+1] * cos(θ)
+<span class="com"># Same for k</span></code></pre>
+
+        <p>Typical kernels: <code>rope</code>, <code>fused_rope</code>, <code>rotary_embedding</code>. The operation is cheap — element-wise trig and vector arithmetic — and usually fused into the QKV split or the attention kernel itself. When it shows up separately in a trace it's a short blip.</p>
+
+        <h2><span class="num">05</span>KV Cache Write <span class="bound mem">memory-bound</span></h2>
+        <p>After RoPE, K and V are written into the KV cache so future decode steps can attend to them without recomputation. This kernel exists because we pay a one-time HBM-write cost during prefill to avoid quadratic recompute during decode.</p>
+
+        <div class="kernel-list">
+          <code>cache_write</code>
+          <code>reshape_and_cache</code>
+          <code>paged_attention_cache</code>
+        </div>
+
+        <p>With paged attention, the write goes into non-contiguous physical blocks — the kernel follows a block table rather than striding a flat slab. Fully memory-bound; the cost scales with <code>seq_len × n_kv_heads × head_dim × dtype_bytes</code> per layer.</p>
+
+        <h2><span class="num">06</span>Attention <span class="bound mem">memory-bound</span></h2>
+        <p>This is the most algorithmically interesting kernel in the stack. Mathematically it's three operations chained together:</p>
+
+        <pre><code>scores = Q @ Kᵀ / sqrt(head_dim)   <span class="com"># [seq, seq]</span>
+weights = softmax(scores)
+output  = weights @ V               <span class="com"># [seq, head_dim]</span></code></pre>
+
+        <p>A naïve implementation would materialize the full <code>[seq × seq]</code> score matrix in HBM — a quadratic memory cost that makes long contexts impossible. Modern systems instead use <strong>fused kernels</strong> that keep the score tile in SRAM and never write it to global memory:</p>
+
+        <div class="kernel-list">
+          <code>flash_attention</code>
+          <code>paged_attention</code>
+          <code>flash_decode</code>
+        </div>
+
+        <p>FlashAttention tiles Q, K, V across SRAM, computing and discarding score tiles on the fly. PagedAttention extends this to non-contiguous KV blocks, reading through a block table. Both kernels are <strong>heavily memory-bandwidth limited</strong> — the QK and V reads dominate, and the small tiled GEMMs inside sit well below peak MFMA throughput. On MI300X, attention becomes the bottleneck that determines decode throughput.</p>
+
+        <figure>
+          <div class="fig-slot"><span><b>FIGURE — FlashAttention tile diagram</b>Show Q tile in SRAM, KV blocks read from HBM one block at a time, score tile computed locally and never written back. Annotate: "SRAM" and "HBM" regions.</span></div>
+          <figcaption><span class="n">Fig 1.</span> FlashAttention avoids materializing the full attention matrix in HBM by keeping scores in SRAM and streaming K/V one tile at a time.</figcaption>
+        </figure>
+
+        <h2><span class="num">07</span>Output Projection GEMM <span class="bound compute">compute-bound</span></h2>
+        <p>The concatenated attention output — all heads stitched back together — is projected back to the model's hidden dimension.</p>
+
+        <pre><code>output = attn_output @ W_o
+<span class="com"># [batch, n_heads × head_dim] × [n_heads × head_dim, hidden]</span></code></pre>
+
+        <p>Same kernel family as the QKV projection: <code>rocblas_gemm</code>, <code>ck_gemm</code>, or <code>aiter_gemm</code>. Same MFMA-heavy behavior. Compute-bound during prefill; transitions toward memory-bound during single-token decode when the batch dimension is 1.</p>
+
+        <h2><span class="num">08</span>MLP Up Projection <span class="bound compute">compute-bound</span></h2>
+        <p>After the attention block, the residual stream passes through a two-layer MLP. The up-projection expands the hidden dimension — Llama models use a roughly 3.5× expansion.</p>
+
+        <pre><code>up   = x @ W_up    <span class="com"># 4096 → 14336</span>
+gate = x @ W_gate  <span class="com"># fused in one kernel on some backends</span></code></pre>
+
+        <p>This is <strong>one of the largest GEMMs in the model</strong>. On a 70B model the up and gate projections together account for more FLOPs than the entire attention block. Profiler traces show it clearly: a long GEMM kernel, high MFMA utilization, high arithmetic intensity.</p>
+
+        <h2><span class="num">09</span>SiLU / GELU Activation <span class="bound light">lightweight</span></h2>
+        <p>The up-projected output passes through a non-linearity. Llama uses SiLU (Sigmoid Linear Unit); other models use GELU or variants.</p>
+
+        <pre><code>SiLU(x) = x * sigmoid(x) = x / (1 + exp(−x))</code></pre>
+
+        <div class="kernel-list">
+          <code>silu</code>
+          <code>gelu</code>
+          <code>fused_silu</code>
+        </div>
+
+        <p>Cheap. Often fused with the gate multiplication below into a single <code>fused_swiglu</code> kernel that reads once and writes once. When it appears standalone in a trace it's a short, memory-bound blip.</p>
+
+        <h2><span class="num">10</span>Gate Multiplication <span class="bound light">lightweight</span></h2>
+        <p>Llama's MLP uses a <em>gated</em> activation — the SiLU output is multiplied element-wise by a separate gate projection. The gate acts as a learned per-element mask that sharpens or suppresses activations.</p>
+
+        <pre><code>output = SiLU(up_proj) * gate_proj</code></pre>
+
+        <div class="kernel-list">
+          <code>elementwise_mul</code>
+          <code>fused_swiglu</code>
+        </div>
+
+        <p>Memory-bound and fast. The fused SwiGLU kernel is the common form: one kernel reads <code>up_proj</code> and <code>gate_proj</code>, applies SiLU to one, multiplies, writes the result. Halves the HBM traffic compared to two separate kernels.</p>
+
+        <h2><span class="num">11</span>MLP Down Projection <span class="bound compute">compute-bound</span></h2>
+        <p>The final step of the MLP block: project back to the model's hidden dimension.</p>
+
+        <pre><code>hidden = mlp_output @ W_down   <span class="com"># 14336 → 4096</span></code></pre>
+
+        <p>Another large GEMM, same kernel family as the up projection, same MFMA utilization pattern. The down projection closes the layer; a residual add folds the MLP output back into the main stream and we're ready for the next layer.</p>
+
+        <h2><span class="num">12</span>What ROCm Profiler actually shows</h2>
+        <p>When you run <code>rocprof --stats</code> or Omniperf against a Llama inference workload, the top kernel names look roughly like this — exact names vary by framework version and which backend (rocBLAS, CK, AITER) is selected at runtime:</p>
+
+        <pre><code><span class="com"># Common kernel names in a ROCm trace</span>
+ck_gemm_kernel                 <span class="com"># QKV, output, MLP projections</span>
+aiter_gemm                     <span class="com"># same, if AITER backend is active</span>
+rocblas_sgemm / hgemm          <span class="com"># fallback GEMM path</span>
+fused_rmsnorm_kernel           <span class="com"># pre-attention normalization</span>
+rotary_embedding_kernel        <span class="com"># RoPE</span>
+reshape_and_cache_kernel       <span class="com"># KV cache write</span>
+flash_attention_fwd            <span class="com"># prefill attention</span>
+paged_attention_v1 / v2        <span class="com"># decode attention</span>
+fused_swiglu_kernel            <span class="com"># SiLU + gate multiply</span>
+elementwise_mul_kernel         <span class="com"># gate multiply (unfused path)</span></code></pre>
+
+        <p>The <em>distribution</em> of time across these kernels is what changes between prefill and decode — same names, very different proportions.</p>
+
+        <h2><span class="num">13</span>Prefill vs. decode: the same kernels, different bottlenecks</h2>
+        <p>During <strong>prefill</strong>, the model processes all prompt tokens in parallel. Sequence lengths are long, batch matrices are large, and the GEMMs are fat and square — ideal for MFMA units. The profile looks like a long series of compute-bound GEMM kernels, one stack per transformer layer:</p>
+
+        <pre><code><span class="com"># Prefill — 32-layer model, dominant kernels in order</span>
+for layer in range(32):
+    rmsnorm           <span class="com"># cheap</span>
+    gemm_qkv          <span class="com"># large, compute-bound ←</span>
+    rope              <span class="com"># cheap</span>
+    flash_attention   <span class="com"># grows quadratically with seq_len ←</span>
+    gemm_output       <span class="com"># compute-bound ←</span>
+    gemm_up / gate    <span class="com"># largest GEMM ←</span>
+    fused_swiglu      <span class="com"># cheap</span>
+    gemm_down         <span class="com"># compute-bound ←</span></code></pre>
+
+        <p>During <strong>decode</strong>, one new token is generated per step. The GEMM shapes collapse: the sequence-length dimension becomes 1, turning large matrix multiplications into matrix-vector products — a form that barely touches the MFMA units and is almost entirely memory-bandwidth limited. Meanwhile, the attention kernel must read the full KV cache — which grows with every generated token.</p>
+
+        <pre><code><span class="com"># Decode — dominant shift in kernel cost</span>
+for layer in range(32):
+    rmsnorm            <span class="com"># cheap</span>
+    gemm_q             <span class="com"># now tiny: [1, hidden] × [hidden, head_dim]</span>
+    rope               <span class="com"># cheap</span>
+    paged_attention    <span class="com"># reads full KV cache, memory-bound ←←</span>
+    gemm_output        <span class="com"># tiny matrix-vector</span>
+    gemm_up / gate     <span class="com"># also memory-bound now</span>
+    fused_swiglu
+    gemm_down          <span class="com"># memory-bound</span></code></pre>
+
+        <p>This is why decode throughput on a GPU like <strong>MI300X</strong> or H100 is gated by <mark>HBM memory bandwidth</mark>, not compute. The weights are read from HBM on every token step for every layer; the KV cache is also read in full on every step. The GEMMs are too thin to keep the MFMA units fed. The hardware's 5.3 TB/s of HBM bandwidth becomes the real ceiling.</p>
+
+        <figure>
+          <div class="fig-slot"><span><b>FIGURE — prefill vs. decode kernel timeline</b>Two side-by-side horizontal timelines for one layer. Prefill: wide GEMM blocks dominate, attention is moderate. Decode: GEMMs are thin slices, paged_attention is the wide block. Color by kernel type.</span></div>
+          <figcaption><span class="n">Fig 2.</span> Prefill is GEMM-dominated (compute-bound). Decode is attention- and memory-dominated. The kernels are the same; their cost profile flips.</figcaption>
+        </figure>
+
+        <hr class="rule" />
+
+        <h2><span class="num">14</span>The full map</h2>
+        <p>Here is the complete operation-to-kernel reference, annotated with the hardware bottleneck for each stage. This is the table I keep open when reading Omniperf output.</p>
+
+        <div class="tbl-wrap">
+        <table>
+          <caption>Transformer layer — operation to kernel mapping</caption>
+          <thead>
+            <tr>
+              <th>Transformer operation</th>
+              <th>Typical AMD kernel</th>
+              <th>Bound by</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>RMSNorm</td>
+              <td><code>rmsnorm</code>, <code>fused_rmsnorm</code></td>
+              <td class="bound-col">Memory</td>
+            </tr>
+            <tr>
+              <td>QKV Projection</td>
+              <td><code>ck_gemm</code>, <code>aiter_gemm</code>, <code>rocblas_gemm</code></td>
+              <td class="bound-col">Compute (MFMA)</td>
+            </tr>
+            <tr>
+              <td>Q/K/V Split</td>
+              <td><code>split_qkv</code>, <code>reshape_qkv</code></td>
+              <td class="bound-col">Memory</td>
+            </tr>
+            <tr>
+              <td>RoPE</td>
+              <td><code>rope</code>, <code>fused_rope</code></td>
+              <td class="bound-col">Lightweight</td>
+            </tr>
+            <tr>
+              <td>KV Cache Write</td>
+              <td><code>reshape_and_cache</code>, <code>cache_write</code></td>
+              <td class="bound-col">Memory</td>
+            </tr>
+            <tr>
+              <td>Attention (prefill)</td>
+              <td><code>flash_attention</code></td>
+              <td class="bound-col">Memory (HBM BW)</td>
+            </tr>
+            <tr>
+              <td>Attention (decode)</td>
+              <td><code>paged_attention</code>, <code>flash_decode</code></td>
+              <td class="bound-col">Memory (HBM BW)</td>
+            </tr>
+            <tr>
+              <td>Output Projection</td>
+              <td><code>ck_gemm</code>, <code>aiter_gemm</code></td>
+              <td class="bound-col">Compute / Memory*</td>
+            </tr>
+            <tr>
+              <td>MLP Up Projection</td>
+              <td><code>ck_gemm</code>, <code>aiter_gemm</code></td>
+              <td class="bound-col">Compute (MFMA)</td>
+            </tr>
+            <tr>
+              <td>SiLU Activation</td>
+              <td><code>silu</code>, <code>fused_silu</code></td>
+              <td class="bound-col">Lightweight</td>
+            </tr>
+            <tr>
+              <td>Gate Multiply</td>
+              <td><code>fused_swiglu</code>, <code>elementwise_mul</code></td>
+              <td class="bound-col">Memory</td>
+            </tr>
+            <tr>
+              <td>MLP Down Projection</td>
+              <td><code>ck_gemm</code>, <code>aiter_gemm</code></td>
+              <td class="bound-col">Compute / Memory*</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+        <p style="font-family: var(--mono); font-size: 12.5px; color: var(--faint); margin-top: -8px;">* Compute-bound during prefill (large batch, long sequence); transitions to memory-bound during single-token decode.</p>
+
+        <h2><span class="num">15</span>What this means for optimization work</h2>
+        <p>The table above is diagnostic before it's prescriptive. When a kernel shows up as unexpectedly slow in a profile, the bound classification tells you which resource to look at first — and which levers are likely to move the needle.</p>
+        <p>For memory-bound kernels, the questions are: how many times is each byte read? Can operations be fused to eliminate a round-trip through HBM? Is the access pattern coalesced? For compute-bound kernels, the questions are: what fraction of peak MFMA throughput are we achieving? Is occupancy limiting register reuse?</p>
+        <p>Decode performance on AMD Instinct hardware is almost entirely a memory-bandwidth story. The weights and the KV cache are both read from HBM on every step. Quantization (FP8, INT4) helps by shrinking what needs to be read. Continuous batching helps by amortizing those reads across more requests. Tensor parallelism distributes the reads across more HBM pools. But the ceiling is set by bandwidth, not by FLOPS — and that changes which optimizations are worth pursuing.</p>
+        <p>The next post in this series will follow a single KV block through the paged attention kernel in detail: how the block table is traversed, where the indirection lands in SRAM vs. HBM, and what the actual bandwidth cost looks like in an Omniperf trace.</p>
+      </div>
+    </article>
+
+    <nav class="post-nav">
+      <a href="kv-cache.html">← The KV cache: where inference memory actually goes</a>
+      <a href="../index.html">all writing →</a>
+    </nav>
+
+    <footer class="site">
+      <div class="links">
+        <a href="mailto:shireesha.govindu@gmail.com">Email</a>
+        <a href="https://github.com/ShireeshaGovindu" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://www.linkedin.com/in/shireesha-govindu-510018161" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="#">Google Scholar</a>
+      </div>
+      <p class="copy">© 2026 Shireesha Govindu · built to be quiet and fast</p>
+    </footer>
+  </div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t) {
+      root.setAttribute('data-theme', t);
+      btn.textContent = t === 'dark' ? '☀' : '☾';
+      try { localStorage.setItem('theme', t); } catch (e) {}
+    }
+    var saved;
+    try { saved = localStorage.getItem('theme'); } catch (e) {}
+    if (!saved) saved = 'light';
+    apply(saved);
+    btn.addEventListener('click', function () {
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+    window.addEventListener('message', function (e) {
+      if (e.data && e.data.type === 'set-theme') apply(e.data.theme);
+    });
+
+    var bar = document.getElementById('progress');
+    function onScroll() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      var pct = max > 0 ? (h.scrollTop || document.body.scrollTop) / max * 100 : 0;
+      bar.style.width = pct.toFixed(1) + '%';
+    }
+    document.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    onScroll();
+  })();
+</script>
+</body>
+</html>

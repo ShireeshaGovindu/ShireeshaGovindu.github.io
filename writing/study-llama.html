@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study 1 — Llama-3.1-8B on MI300X — Shireesha Govindu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1c1b18; --muted: #75726b; --faint: #a8a59a;
+    --line: #ece7da; --code-bg: #f6f3ea; --accent: #b85c00;
+    --sans: "EB Garamond", Georgia, "Times New Roman", serif;
+    --mono: "SF Mono", "DM Mono", ui-monospace, Menlo, monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--fg); font-size: 17px; line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  ::selection { background: #fde8cc; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--mono); font-size: .82em; background: var(--code-bg); padding: 2px 6px; border-radius: 3px; color: var(--fg); }
+  .page-chrome { max-width: 960px; margin: 0 auto; padding: 0 48px; }
+  .post-sub { max-width: 720px; }
+  .exp-body p { max-width: 820px; }
+  .topnav { display: flex; justify-content: space-between; align-items: center; padding: 32px 0 0; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+  .topnav a { color: var(--muted); text-decoration: none; transition: color .15s; }
+  .topnav a:hover { color: var(--accent); text-decoration: none; }
+  .post-header { padding: 52px 0 40px; border-bottom: 1px solid var(--line); }
+  .post-kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+  .post-title { font-family: var(--sans); font-size: clamp(32px, 5vw, 48px); font-weight: 500; line-height: 1.08; letter-spacing: -.2px; margin-bottom: 20px; }
+  .post-sub { font-size: 19px; color: var(--muted); line-height: 1.6; max-width: 620px; }
+  .post-meta { margin-top: 22px; font-family: var(--mono); font-size: 12px; color: var(--faint); letter-spacing: .04em; }
+  .post-body { padding: 52px 0 80px; }
+  .exp-entry { padding: 44px 0; border-bottom: 1px solid var(--line); }
+  .exp-entry:last-child { border-bottom: none; }
+  .exp-num { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .exp-title { font-family: var(--sans); font-size: 28px; font-weight: 500; line-height: 1.15; letter-spacing: -.1px; margin-bottom: 18px; }
+  .exp-body p { color: var(--fg); font-size: 17px; line-height: 1.65; margin-bottom: 16px; }
+  .exp-body p:last-child { margin-bottom: 0; }
+  .exp-body strong { font-weight: 600; }
+  .obs { margin: 22px 0; padding: 16px 20px; border-left: 3px solid var(--accent); background: #fdf3e8; border-radius: 0 5px 5px 0; font-size: 18px; line-height: 1.6; color: #5a2d00; }
+  .obs strong { font-weight: 600; }
+  .tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+  .tool { font-family: var(--mono); font-size: 12px; background: var(--code-bg); border: 1px solid var(--line); padding: 3px 9px; border-radius: 4px; color: var(--muted); }
+  .post-footer { border-top: 1px solid var(--line); padding: 40px 0 64px; font-family: var(--mono); font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .post-footer a { color: var(--muted); text-decoration: none; transition: color .15s; }
+  .post-footer a:hover { color: var(--accent); }
+  @media (max-width: 680px) { .page-chrome { padding: 0 20px; } }
+</style>
+</head>
+<body>
+<div class="page-chrome">
+
+  <nav class="topnav">
+    <a href="vllm-study.html">← All studies</a>
+    <span>Research · 2025–2026</span>
+  </nav>
+
+  <header class="post-header">
+    <div class="post-kicker">Study 1 · Dense Architecture</div>
+    <h1 class="post-title">Llama-3.1-8B-Instruct<br>on MI300X</h1>
+    <p class="post-sub">
+      A single AMD MI300X, vLLM 0.23.0, ROCm 7.2.3. Baseline → concurrency → KV-cache exhaustion
+      → FP8 → AITER → composition → roofline — each step measured, attributed to a hardware
+      resource, and proven with rocprofv3 / Omniperf evidence.
+    </p>
+    <div class="post-meta">Model: NousResearch/Meta-Llama-3.1-8B-Instruct (BF16 / FP8) &nbsp;·&nbsp; 7 experiments</div>
+  </header>
+
+  <div class="post-body">
+
+    <div class="exp-entry">
+      <div class="exp-num">Experiment 01</div>
+      <h2 class="exp-title">Baseline harness</h2>
+      <div class="exp-body">
+        <p>
+          Built a benchmark harness with vLLM's <code>benchmark_serving.py</code> against
+          Llama-3.1-8B-Instruct resident in BF16, and defined <strong>TTFT</strong>,
+          <strong>ITL</strong>, and <strong>end-to-end throughput</strong> as the measurement
+          foundation for every subsequent experiment.
+        </p>
+        <div class="obs">
+          Single-stream (batch=1) baseline: <strong>192.6 tok/s</strong>, mean ITL 4.9 ms.
+          Roofline placed this at arithmetic intensity ≈ 1 FLOP/byte — 247× below the MI300X
+          BF16 ridge — meaning &gt;99% of peak TFLOP/s sat idle waiting on HBM weight reads.
+        </div>
+        <div class="tools">
+          <span class="tool">vLLM 0.23.0</span>
+          <span class="tool">benchmark_serving.py</span>
+          <span class="tool">BF16</span>
+          <span class="tool">TTFT / ITL</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-num">Experiment 02</div>
+      <h2 class="exp-title">Concurrency sweep</h2>
+      <div class="exp-body">
+        <p>
+          Continuous batching amortizes each HBM weight read across every concurrent request.
+          A concurrency sweep found the <strong>batching knee</strong> — the point where more
+          requests stop raising throughput — confirmed against rocprofv3 CU-occupancy traces.
+        </p>
+        <div class="obs">
+          Throughput scaled <strong>192.6 → 5,595.3 tok/s (29×)</strong> from concurrency alone,
+          saturating near c ≈ 246 where arithmetic intensity approaches the 247 FLOP/byte ridge.
+          Mean ITL at peak: 77.6 ms. Marginal gain past the knee fell below 5% — bandwidth
+          ceiling confirmed.
+        </div>
+        <div class="tools">
+          <span class="tool">rocprofv3</span>
+          <span class="tool">CU occupancy</span>
+          <span class="tool">continuous batching</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-num">Experiment 03</div>
+      <h2 class="exp-title">KV-cache exhaustion</h2>
+      <div class="exp-body">
+        <p>
+          Past the throughput knee, the ceiling shifts to HBM <strong>capacity</strong>: KV-cache
+          pages compete with weights and activations for VRAM. Once pages fill, vLLM preempts
+          sequences and forces a full prefill recompute on readmission.
+        </p>
+        <div class="obs">
+          At ISL=2048, p99 TTFT cliffs — a &gt;50% single-step jump — at <strong>concurrency 256</strong>,
+          confirmed by 'preempting' events in the vLLM server log. Above the cliff, p99 TTFT grows
+          unboundedly: a hard SLO boundary independent of remaining throughput headroom.
+        </div>
+        <div class="tools">
+          <span class="tool">KV-cache</span>
+          <span class="tool">p99 TTFT</span>
+          <span class="tool">preemption</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-num">Experiment 04</div>
+      <h2 class="exp-title">FP8 quantization</h2>
+      <div class="exp-body">
+        <p>
+          Decode is memory-bandwidth bound: each step loads the full 16.1 GB (8.03B params × 2B)
+          weight set from HBM. Quantizing to FP8 halves that traffic to 8.0 GB per step and
+          raises the FP8 MFMA compute roof from 1,307 → 2,615 TFLOP/s. Accuracy was validated
+          with perplexity against the BF16 baseline.
+        </p>
+        <div class="obs">
+          Peak throughput at the knee: <strong>8,671.5 tok/s (+55.0%)</strong> vs. BF16, mean ITL
+          49.7 ms (‑35.9%), for a <strong>+0.34% perplexity</strong> cost — the single
+          highest-leverage knob in this study.
+        </div>
+        <div class="tools">
+          <span class="tool">FP8 quantization</span>
+          <span class="tool">HBM bandwidth</span>
+          <span class="tool">perplexity</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-num">Experiment 05</div>
+      <h2 class="exp-title">AITER backend</h2>
+      <div class="exp-body">
+        <p>
+          AMD's <strong>AITER</strong> fused-kernel backend was toggled on and off
+          (<code>VLLM_ROCM_USE_AITER=1</code>) while capturing rocprofv3 kernel traces, and the
+          roofline model was used to predict the effect <em>before</em> measuring it.
+        </p>
+        <div class="obs">
+          Roofline predicted <strong>~0% benefit</strong> on this dense architecture — compute
+          &lt;1% utilized at low concurrency, and AITER's kernels target MoE/MLA models, not
+          standard attention. Confirmed empirically: <strong>‑0.1% throughput, +1.7% ITL</strong> —
+          within measurement noise.
+        </div>
+        <div class="tools">
+          <span class="tool">AITER</span>
+          <span class="tool">rocprofv3</span>
+          <span class="tool">roofline prediction</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-num">Experiment 06</div>
+      <h2 class="exp-title">FP8 + AITER composition</h2>
+      <div class="exp-body">
+        <p>
+          FP8 and AITER both relieve HBM bandwidth pressure — FP8 by shrinking bytes-per-step,
+          AITER by using those bytes more efficiently. Hypothesis: stacking them is sub-additive
+          because they compete for the same headroom.
+        </p>
+        <div class="obs">
+          Combined: <strong>7,415.1 tok/s (+32.5%)</strong> vs. BF16 — well below the naive
+          additive sum of <strong>+54.8%</strong>, confirming sub-additive stacking on a shared
+          bottleneck.
+        </div>
+        <div class="tools">
+          <span class="tool">FP8</span>
+          <span class="tool">AITER</span>
+          <span class="tool">composition test</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-num">Experiment 07</div>
+      <h2 class="exp-title">Roofline analysis — prefill vs. decode</h2>
+      <div class="exp-body">
+        <p>
+          Omniperf roofline plots distinguish memory-bound from compute-bound kernels by plotting
+          arithmetic intensity against achieved TFLOP/s relative to the BF16/FP8 ridge.
+        </p>
+        <div class="obs">
+          A long-prompt capture (ISL=7,680) landed at arithmetic intensity &gt;7,680 FLOP/byte —
+          far above the 247 FLOP/byte ridge, confirming <strong>prefill is compute-bound</strong>,
+          the architectural inverse of memory-bound decode — motivating disaggregated
+          prefill/decode serving as the next architectural step.
+        </div>
+        <div class="tools">
+          <span class="tool">Omniperf</span>
+          <span class="tool">roofline model</span>
+          <span class="tool">arithmetic intensity</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="post-footer">
+    <a href="vllm-study.html">← All studies</a>
+    <a href="study-deepseek.html">Study 2: DeepSeek-V2-Lite →</a>
+  </footer>
+
+</div>
+</body>
+</html>
