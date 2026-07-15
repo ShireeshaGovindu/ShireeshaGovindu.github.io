@@ -348,6 +348,22 @@
     .topbar nav { gap: 18px; }
     .topbar nav a.hide-sm { display: none; }
     .skills-grid { grid-template-columns: 1fr; }
+
+    body { font-size: 17px; }
+    .hero h1 { font-size: clamp(34px, 9vw, 48px); }
+    .hero p { font-size: 16px; }
+    h2 { font-size: 26px; }
+    .lead { font-size: 15px; }
+    .exp h3 { font-size: 18px; }
+    .exp p { font-size: 15px; }
+    .write-card .wc-title { font-size: 22px; }
+    .write-card .wc-desc { font-size: 16px; }
+    .job-co { font-size: 24px; }
+    .job-group ul li { font-size: 15px; }
+    .skill-group .sg-items { font-size: 15px; }
+    .edu-deg { font-size: 16px; }
+    .edu-uni { font-size: 15px; }
+    footer h3 { font-size: clamp(24px, 7vw, 34px); }
   }
 </style>
 </head>
@@ -369,7 +385,7 @@
   <header class="hero" data-screen-label="Hero">
     <div class="eyebrow">GPU SOFTWARE ENGINEER · AI INFERENCE</div>
     <h1>Shireesha Govindu</h1>
-    <p>After three years in GPU validation and automation at AMD, I shifted to self-directed study of LLM inference performance. It was the validation work — exposing me to GPU internals — that made inference the natural next step. I now build and optimize LLM inference runtimes on AMD ROCm using vLLM, with a focus on performance analysis, benchmarking, and GPU efficiency. I document every experiment with reproducible benchmarks and data-driven performance insights.</p>
+    <p>After three years in GPU validation and automation at AMD, I shifted to self-directed study of LLM inference Runtime performance. It was the validation work — exposing me to GPU internals — that made inference the natural next step. I now build and optimize LLM inference runtimes on AMD ROCm using vLLM, with a focus on performance analysis, benchmarking, and GPU efficiency. I document every experiment with reproducible benchmarks and data-driven performance insights.</p>
     <div class="links">
       <a class="link-primary" href="resume.html">View Resume <span class="arrow">→</span></a>
       <a class="icon-btn" href="https://github.com/ShireeshaGovindu" target="_blank" rel="noopener" aria-label="GitHub">
@@ -479,13 +495,13 @@
     <div class="label">Writing</div>
     <div class="sec-body">
     <a class="write-card" href="writing/transformer-inference-kernels.html">
-      <div class="wc-meta">Essay · GPU Kernels</div>
+      <div class="wc-meta">GPU Kernels</div>
       <div class="wc-title">From Prompt to Token: Inside Transformer Inference on AMD GPUs</div>
       <div class="wc-desc">A practical walkthrough of prefill, decode, attention, KV cache, GPU kernels, and memory bottlenecks in modern LLM inference — with a full operation-to-kernel map for ROCm profiling.</div>
       <div class="wc-cta">Read the note <span class="arrow">→</span></div>
     </a>
     <a class="write-card" href="writing/kv-cache.html" style="border-top: 1px solid var(--rule); padding-top: 26px; margin-top: 10px;">
-      <div class="wc-meta">Essay · Inference Memory</div>
+      <div class="wc-meta">Inference Memory</div>
       <div class="wc-title">The KV cache: where inference memory actually goes</div>
       <div class="wc-desc">Why serving long contexts is a memory problem before it is a compute problem — and what that means for batching, quantization, and paged attention on AMD hardware.</div>
       <div class="wc-cta">Read the note <span class="arrow">→</span></div>
